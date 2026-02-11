@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { useCart } from '../contexts/CartContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 export default function ProductModal({ product, onClose }) {
-    const { addToCart, checkout } = useCart();
-    const { user } = useAuth();
-    const navigate = useNavigate();
+    const { addToCart } = useCart();
     const [selectedSize, setSelectedSize] = useState('');
     const [quantity, setQuantity] = useState(1);
 
@@ -14,25 +10,13 @@ export default function ProductModal({ product, onClose }) {
 
     const sizes = product.sizes ? product.sizes.split(',').map(s => s.trim()) : [];
 
-    const handleAction = async (isBuyNow = false) => {
+    const handleAddToCart = () => {
         if (sizes.length > 0 && !selectedSize) {
             alert("Por favor selecciona una talla");
             return;
         }
-
-        await addToCart(product, selectedSize, quantity);
-
-        if (isBuyNow) {
-            if (!user) {
-                onClose();
-                navigate('/login', { state: { returnTo: '/shop', checkoutAfterLogin: true } });
-            } else {
-                onClose();
-                checkout();
-            }
-        } else {
-            onClose();
-        }
+        addToCart(product, selectedSize, quantity);
+        onClose();
     };
 
     return (
@@ -80,14 +64,9 @@ export default function ProductModal({ product, onClose }) {
                             </div>
                         </div>
 
-                        <div className="modal-actions" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                            <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => handleAction(false)}>
-                                agregar al carrito
-                            </button>
-                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => handleAction(true)}>
-                                comprar ahora
-                            </button>
-                        </div>
+                        <button className="btn btn-primary add-to-cart-btn" onClick={handleAddToCart}>
+                            agregar al carrito
+                        </button>
                     </div>
                 </div>
             </div>

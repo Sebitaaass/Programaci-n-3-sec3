@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useCart } from '../contexts/CartContext';
 import loginBg from '../assets/login-bg.jpg';
 
 export default function AuthPage() {
     const { login, register } = useAuth();
-    const { checkout } = useCart();
-    const location = useLocation();
-    const navigate = useNavigate();
     const [isLogin, setIsLogin] = useState(true);
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
@@ -28,14 +23,7 @@ export default function AuthPage() {
             result = await register(formData.name, formData.email, formData.password);
         }
 
-        if (result.success) {
-            const { returnTo, checkoutAfterLogin } = location.state || {};
-            if (checkoutAfterLogin) {
-                // Pequeño delay para asegurar que el usuario ya está en el context
-                setTimeout(() => checkout(), 500);
-            }
-            navigate(returnTo || '/');
-        } else {
+        if (!result.success) {
             setError(result.error);
         }
     };

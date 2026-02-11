@@ -21,14 +21,16 @@ function App() {
         user?.role === 'admin' ? <ProductManagement /> : <Navigate to="/" />
       } />
 
-      {/* Rutas públicas */}
-      <Route path="/shop" element={<ClientHome />} />
-      <Route path="/" element={
-        user?.role === 'admin' ? <Navigate to="/admin" /> : <ClientHome />
-      } />
-
-      {/* Rutas protegidas */}
+      <Route path="/shop" element={user ? <ClientHome /> : <Navigate to="/login" />} />
       <Route path="/profile" element={user ? <UserProfile /> : <Navigate to="/login" />} />
+
+      <Route path="/" element={
+        user ? (
+          user.role === 'admin' ? <Navigate to="/admin" /> : <ClientHome />
+        ) : (
+          <Navigate to="/login" />
+        )
+      } />
     </Routes>
   );
 }
