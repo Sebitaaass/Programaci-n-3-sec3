@@ -201,36 +201,35 @@ export default function Header({ activeCategory, onCategoryChange, hideNewCollec
                                                 Panel Admin
                                             </button>
                                         )}
-                                        <button
-                                            className="user-dropdown-item"
-                                            onClick={() => { logout(); navigate('/login'); }}
-                                            style={{ color: '#e53935' }}
+                                        className="user-dropdown-item"
+                                        onClick={() => { logout(); navigate('/'); }}
+                                        style={{ color: '#e53935' }}
                                         >
-                                            Cerrar Sesión
-                                        </button>
+                                        Cerrar Sesión
+                                    </button>
                                     </div>
                                 )}
-                            </>
-                        ) : (
-                            <div className="auth-buttons" style={{ display: 'flex', gap: '10px' }}>
-                                <button
-                                    onClick={() => navigate('/login')}
-                                    style={{
-                                        border: '1px solid var(--text-primary)',
-                                        background: 'transparent',
-                                        padding: '5px 15px',
-                                        borderRadius: '20px',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
-                                    Login
-                                </button>
-                            </div>
-                        )}
+                    </>
+                    ) : (
+                    <div className="auth-buttons" style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            onClick={() => navigate('/login')}
+                            style={{
+                                border: '1px solid var(--text-primary)',
+                                background: 'transparent',
+                                padding: '5px 15px',
+                                borderRadius: '20px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            Login
+                        </button>
                     </div>
+                        )}
                 </div>
             </div>
-        </header>
+        </div>
+        </header >
     );
 }
