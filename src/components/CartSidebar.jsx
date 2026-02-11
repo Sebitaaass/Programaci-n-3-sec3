@@ -11,7 +11,9 @@ export default function CartSidebar() {
         setIsCartOpen
     } = useCart();
 
-    const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = Array.isArray(cartItems)
+        ? cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        : 0;
 
     if (!isCartOpen) return null;
 
