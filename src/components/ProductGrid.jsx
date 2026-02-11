@@ -4,11 +4,9 @@ import ProductModal from './ProductModal';
 export default function ProductGrid({ activeCategory, products = [] }) {
     const [selectedProduct, setSelectedProduct] = useState(null);
 
-    const safeProducts = Array.isArray(products) ? products : [];
-
     const filteredProducts = activeCategory === 'all'
-        ? safeProducts
-        : safeProducts.filter(p => p.category === activeCategory);
+        ? products
+        : products.filter(p => p.category === activeCategory);
 
     return (
         <>

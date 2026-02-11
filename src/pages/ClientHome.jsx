@@ -21,18 +21,8 @@ export default function ClientHome() {
     useEffect(() => {
         fetch(`${API_BASE_URL}/api/products`)
             .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setProducts(data);
-                } else {
-                    console.error("Expected array of products, got:", data);
-                    setProducts([]);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching products:", err);
-                setProducts([]);
-            });
+            .then(data => setProducts(data))
+            .catch(err => console.error("Error fetching products:", err));
     }, []);
 
     return (

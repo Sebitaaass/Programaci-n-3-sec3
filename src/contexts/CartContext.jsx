@@ -16,15 +16,9 @@ export function CartProvider({ children }) {
         try {
             const res = await fetch(`${API_BASE_URL}/api/cart/${user.id}`);
             const data = await res.json();
-            if (Array.isArray(data)) {
-                setCartItems(data);
-            } else {
-                console.error("Expected array of cart items, got:", data);
-                setCartItems([]);
-            }
+            setCartItems(data);
         } catch (error) {
             console.error("Error fetching cart", error);
-            setCartItems([]);
         }
     }, [user]);
 
