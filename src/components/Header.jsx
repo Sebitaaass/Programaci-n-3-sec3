@@ -172,39 +172,59 @@ export default function Header({ activeCategory, onCategoryChange, hideNewCollec
                     </div>
 
                     <div className="user-menu">
-                        <button
-                            className="header-action-btn"
-                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                        >
-                            <FiUser />
-                        </button>
-
-                        {isUserMenuOpen && (
-                            <div className="user-dropdown">
-                                <div className="user-dropdown-info" style={{ padding: '10px 15px', borderBottom: '1px solid #eee', fontSize: '0.8rem' }}>
-                                    <strong>{user?.name}</strong><br />
-                                    <span style={{ color: '#666' }}>{user?.role === 'admin' ? 'Administrador' : 'Cliente'}</span>
-                                </div>
+                        {user ? (
+                            <>
                                 <button
-                                    className="user-dropdown-item"
-                                    onClick={() => { navigate('/profile'); setIsUserMenuOpen(false); }}
+                                    className="header-action-btn"
+                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                                 >
-                                    Mi Perfil
+                                    <FiUser />
                                 </button>
-                                {user?.role === 'admin' && (
-                                    <button
-                                        className="user-dropdown-item"
-                                        onClick={() => { navigate('/admin'); setIsUserMenuOpen(false); }}
-                                    >
-                                        Panel Admin
-                                    </button>
+
+                                {isUserMenuOpen && (
+                                    <div className="user-dropdown">
+                                        <div className="user-dropdown-info" style={{ padding: '10px 15px', borderBottom: '1px solid #eee', fontSize: '0.8rem' }}>
+                                            <strong>{user.name}</strong><br />
+                                            <span style={{ color: '#666' }}>{user.role === 'admin' ? 'Administrador' : 'Cliente'}</span>
+                                        </div>
+                                        <button
+                                            className="user-dropdown-item"
+                                            onClick={() => { navigate('/profile'); setIsUserMenuOpen(false); }}
+                                        >
+                                            Mi Perfil
+                                        </button>
+                                        {user.role === 'admin' && (
+                                            <button
+                                                className="user-dropdown-item"
+                                                onClick={() => { navigate('/admin'); setIsUserMenuOpen(false); }}
+                                            >
+                                                Panel Admin
+                                            </button>
+                                        )}
+                                        <button
+                                            className="user-dropdown-item"
+                                            onClick={() => { logout(); navigate('/login'); }}
+                                            style={{ color: '#e53935' }}
+                                        >
+                                            Cerrar Sesión
+                                        </button>
+                                    </div>
                                 )}
+                            </>
+                        ) : (
+                            <div className="auth-buttons" style={{ display: 'flex', gap: '10px' }}>
                                 <button
-                                    className="user-dropdown-item"
-                                    onClick={() => { logout(); navigate('/login'); }}
-                                    style={{ color: '#e53935' }}
+                                    onClick={() => navigate('/login')}
+                                    style={{
+                                        border: '1px solid var(--text-primary)',
+                                        background: 'transparent',
+                                        padding: '5px 15px',
+                                        borderRadius: '20px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem'
+                                    }}
                                 >
-                                    Cerrar Sesión
+                                    Login
                                 </button>
                             </div>
                         )}

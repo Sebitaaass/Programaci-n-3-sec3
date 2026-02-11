@@ -1,12 +1,27 @@
 import React, { useState } from 'react';
 import ProductModal from './ProductModal';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function ProductGrid({ activeCategory, products = [] }) {
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const safeProducts = Array.isArray(products) ? products : [];
 
     const filteredProducts = activeCategory === 'all'
-        ? products
-        : products.filter(p => p.category === activeCategory);
+        ? safeProducts
+        : safeProducts.filter(p => p.category === activeCategory);
+
+    const handleProductClick = (product) => {
+        if (!user) {
+            navigate('/login', { state: { returnTo: location.pathname } });
+            return;
+        }
+        setSelectedProduct(product);
+    };
 
     return (
         <>
@@ -16,7 +31,7 @@ export default function ProductGrid({ activeCategory, products = [] }) {
                         <div
                             key={product.id}
                             className="product-card"
-                            onClick={() => setSelectedProduct(product)}
+                            onClick={() => handleProductClick(product)}
                         >
                             <div className="product-image-container" style={{ position: 'relative' }}>
                                 {product.image_url ? (

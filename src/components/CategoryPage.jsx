@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ProductModal from './ProductModal';
 
 // Sample data (duplicated for now, optimally should be shared)
@@ -16,8 +18,19 @@ const categoriesData = [
 
 export default function CategoryPage({ activeCategory, onCategoryChange, products = [] }) {
     const { t } = useLanguage();
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const filteredProducts = products.filter(p => activeCategory === 'all' || p.category === activeCategory);
+
+    const handleProductClick = (product) => {
+        if (!user) {
+            navigate('/login', { state: { returnTo: location.pathname } });
+            return;
+        }
+        setSelectedProduct(product);
+    };
 
     return (
         <>
@@ -75,7 +88,7 @@ export default function CategoryPage({ activeCategory, onCategoryChange, product
                                 <div
                                     key={product.id}
                                     className="enhanced-card"
-                                    onClick={() => setSelectedProduct(product)}
+                                    onClick={() => handleProductClick(product)}
                                     style={{ cursor: 'pointer' }}
                                 >
                                     <div className="card-image-wrapper">
