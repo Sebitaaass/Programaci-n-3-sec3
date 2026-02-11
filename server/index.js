@@ -7,21 +7,8 @@ const db = require('./database');
 const multer = require('multer');
 const fs = require('fs');
 
-// Configuración de Multer para subida de imágenes
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.resolve(__dirname, 'public/uploads');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
+// Configuración de Multer para subida de imágenes (Memoria para DB)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 
@@ -45,18 +32,46 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use('/uploads', express.static(path.resolve(__dirname, 'public/uploads')));
+// app.use('/uploads', express.static(path.resolve(__dirname, 'public/uploads'))); // Ya no se usa disco
 
 
 
-// Endpoint para subir imágenes
-app.post('/api/upload', upload.single('image'), (req, res) => {
+// Endpoint para subir imágenes a la BD
+app.post('/api/upload', upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No se subió ninguna imagen' });
     }
-    // Retornamos la URL relativa para guardar en la DB
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.json({ imageUrl });
+
+    try {
+        const { buffer, mimetype } = req.file;
+        const query = "INSERT INTO images (data, mime_type) VALUES ($1, $2) RETURNING id";
+        const result = await db.query(query, [buffer, mimetype]);
+        const imageId = result.rows[0].id;
+
+        // Retornamos la URL que servirá la imagen desde la BD
+        const imageUrl = `/api/images/${imageId}`;
+        res.json({ imageUrl });
+    } catch (err) {
+        console.error("Error uploading image to DB:", err);
+        res.status(500).json({ error: 'Error al guardar la imagen en la base de datos' });
+    }
+});
+
+// Endpoint para servir imágenes desde la BD
+app.get('/api/images/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query("SELECT data, mime_type FROM images WHERE id = $1", [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).send('Imagen no encontrada');
+        }
+
+        const image = result.rows[0];
+        res.setHeader('Content-Type', image.mime_type);
+        res.send(image.data);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
 });
 
 // Endpoint de Registro (Público - Solo Clientes)

@@ -91,6 +91,13 @@ async function initDb() {
             is_default INTEGER DEFAULT 0
         )`);
 
+        // Crear tabla de imágenes (para persistencia en BD)
+        await db.query(`CREATE TABLE IF NOT EXISTS images (
+            id SERIAL PRIMARY KEY,
+            data BYTEA NOT NULL,
+            mime_type TEXT NOT NULL
+        )`);
+
         // Seed Admin User
         const adminEmail = 'admin@antime.com';
         const adminPass = 'admin123';
