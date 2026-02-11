@@ -57,6 +57,25 @@ export default function ProductGrid({ activeCategory, products = [] }) {
                                         ))}
                                     </div>
                                 )}
+                                {product.stock <= 0 && (
+                                    <div className="out-of-stock-overlay" style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        backgroundColor: 'rgba(0,0,0,0.6)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: '1.2rem',
+                                        zIndex: 10
+                                    }}>
+                                        AGOTADO
+                                    </div>
+                                )}
                             </div>
                             <div className="product-info">
                                 <h3 className="product-name">{product.name}</h3>

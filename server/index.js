@@ -400,6 +400,9 @@ app.post('/api/checkout', async (req, res) => {
 
         for (const item of items) {
             await db.run(itemQuery, [orderId, item.product_id, item.size, item.quantity, item.price]);
+
+            // Decrementar stock
+            await db.run("UPDATE products SET stock = stock - $1 WHERE id = $2", [item.quantity, item.product_id]);
         }
 
         // 3. Limpiar el carrito del usuario

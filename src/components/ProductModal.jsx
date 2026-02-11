@@ -38,6 +38,7 @@ export default function ProductModal({ product, onClose }) {
                             <p>{product.description || 'Sin descripción disponible.'}</p>
                         </div>
 
+                        {/* Size Selector */}
                         {sizes.length > 0 && (
                             <div className="product-modal-sizes">
                                 <h3>seleccionar talla</h3>
@@ -47,6 +48,8 @@ export default function ProductModal({ product, onClose }) {
                                             key={size}
                                             className={`size-btn ${selectedSize === size ? 'active' : ''}`}
                                             onClick={() => setSelectedSize(size)}
+                                            disabled={product.stock <= 0}
+                                            style={product.stock <= 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                         >
                                             {size}
                                         </button>
@@ -58,15 +61,21 @@ export default function ProductModal({ product, onClose }) {
                         <div className="product-modal-quantity">
                             <h3>cantidad</h3>
                             <div className="quantity-controls">
-                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock <= 0}>-</button>
                                 <span>{quantity}</span>
-                                <button onClick={() => setQuantity(quantity + 1)}>+</button>
+                                <button onClick={() => setQuantity(quantity + 1)} disabled={product.stock <= 0}>+</button>
                             </div>
                         </div>
 
-                        <button className="btn btn-primary add-to-cart-btn" onClick={handleAddToCart}>
-                            agregar al carrito
-                        </button>
+                        {product.stock > 0 ? (
+                            <button className="btn btn-primary add-to-cart-btn" onClick={handleAddToCart}>
+                                agregar al carrito
+                            </button>
+                        ) : (
+                            <button className="btn btn-secondary add-to-cart-btn" disabled style={{ cursor: 'not-allowed', backgroundColor: '#ccc' }}>
+                                AGOTADO
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
