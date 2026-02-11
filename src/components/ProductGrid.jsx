@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import ProductModal from './ProductModal';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function ProductGrid({ activeCategory, products = [] }) {
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -15,14 +13,6 @@ export default function ProductGrid({ activeCategory, products = [] }) {
         ? safeProducts
         : safeProducts.filter(p => p.category === activeCategory);
 
-    const handleProductClick = (product) => {
-        if (!user) {
-            navigate('/login', { state: { returnTo: location.pathname } });
-            return;
-        }
-        setSelectedProduct(product);
-    };
-
     return (
         <>
             <section className="products-section">
@@ -31,7 +21,7 @@ export default function ProductGrid({ activeCategory, products = [] }) {
                         <div
                             key={product.id}
                             className="product-card"
-                            onClick={() => handleProductClick(product)}
+                            onClick={() => setSelectedProduct(product)}
                         >
                             <div className="product-image-container" style={{ position: 'relative' }}>
                                 {product.image_url ? (

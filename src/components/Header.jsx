@@ -211,23 +211,7 @@ export default function Header({ activeCategory, onCategoryChange, hideNewCollec
                                     </div>
                                 )}
                             </>
-                        ) : (
-                            <div className="auth-buttons" style={{ display: 'flex', gap: '10px' }}>
-                                <button
-                                    onClick={() => navigate('/login')}
-                                    style={{
-                                        border: '1px solid var(--text-primary)',
-                                        background: 'transparent',
-                                        padding: '5px 15px',
-                                        borderRadius: '20px',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
-                                    Login
-                                </button>
-                            </div>
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </div>

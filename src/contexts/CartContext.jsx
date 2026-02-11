@@ -9,16 +9,29 @@ export function CartProvider({ children }) {
     const [cartItems, setCartItems] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
 
-    // Cargar carrito al iniciar sesión
+    // Cargar carrito al iniciar sesión o desde localStorage
     useEffect(() => {
         if (user) {
             fetchCart();
         } else {
-            setCartItems([]);
+            const localCart = localStorage.getItem('guest_cart');
+            if (localCart) {
+                setCartItems(JSON.parse(localCart));
+            } else {
+                setCartItems([]);
+            }
         }
     }, [user]);
 
+    // Guardar carrito en localStorage cuando cambia (solo para invitados)
+    useEffect(() => {
+        if (!user) {
+            localStorage.setItem('guest_cart', JSON.stringify(cartItems));
+        }
+    }, [cartItems, user]);
+
     const fetchCart = async () => {
+        if (!user) return;
         try {
             const res = await fetch(`${API_BASE_URL}/api/cart/${user.id}`);
             const data = await res.json();
@@ -30,7 +43,27 @@ export function CartProvider({ children }) {
 
     const addToCart = async (product, size, quantity = 1) => {
         if (!user) {
-            alert("Por favor, inicia sesión para agregar al carrito");
+            const newItem = {
+                id: Date.now(),
+                product_id: product.id,
+                name: product.name,
+                price: product.price,
+                image_url: product.image_url,
+                size,
+                quantity
+            };
+            setCartItems(prev => {
+                const existing = prev.find(item => item.product_id === product.id && item.size === size);
+                if (existing) {
+                    return prev.map(item =>
+                        (item.product_id === product.id && item.size === size)
+                            ? { ...item, quantity: item.quantity + quantity }
+                            : item
+                    );
+                }
+                return [...prev, newItem];
+            });
+            setIsCartOpen(true);
             return;
         }
 
@@ -48,7 +81,7 @@ export function CartProvider({ children }) {
 
             if (res.ok) {
                 fetchCart();
-                setIsCartOpen(true); // Abrir carrito al agregar
+                setIsCartOpen(true);
             }
         } catch (error) {
             console.error("Error adding to cart", error);
@@ -57,6 +90,14 @@ export function CartProvider({ children }) {
 
     const updateQuantity = async (cartItemId, quantity) => {
         if (quantity < 1) return;
+
+        if (!user) {
+            setCartItems(prev => prev.map(item =>
+                item.id === cartItemId ? { ...item, quantity } : item
+            ));
+            return;
+        }
+
         try {
             const res = await fetch(`${API_BASE_URL}/api/cart/update`, {
                 method: 'POST',
@@ -70,6 +111,11 @@ export function CartProvider({ children }) {
     };
 
     const removeFromCart = async (id) => {
+        if (!user) {
+            setCartItems(prev => prev.filter(item => item.id !== id));
+            return;
+        }
+
         try {
             const res = await fetch(`${API_BASE_URL}/api/cart/${id}`, {
                 method: 'DELETE'
@@ -81,7 +127,12 @@ export function CartProvider({ children }) {
     };
 
     const checkout = async () => {
-        if (!user || cartItems.length === 0) return;
+        if (!user) {
+            alert("El checkout para invitados está deshabilitado temporalmente.");
+            return;
+        }
+
+        if (cartItems.length === 0) return;
 
         const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
