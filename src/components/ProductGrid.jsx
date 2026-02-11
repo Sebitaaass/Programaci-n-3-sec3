@@ -3,9 +3,6 @@ import ProductModal from './ProductModal';
 
 export default function ProductGrid({ activeCategory, products = [] }) {
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
 
     const safeProducts = Array.isArray(products) ? products : [];
 
