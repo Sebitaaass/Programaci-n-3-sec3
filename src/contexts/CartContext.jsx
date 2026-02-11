@@ -8,6 +8,7 @@ export function CartProvider({ children }) {
     const { user } = useAuth();
     const [cartItems, setCartItems] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
 
     // Cargar carrito al iniciar sesión o desde localStorage
     useEffect(() => {
@@ -137,7 +138,8 @@ export function CartProvider({ children }) {
 
     const checkout = async () => {
         if (!user) {
-            alert("El checkout para invitados está deshabilitado temporalmente.");
+            setIsAuthPromptOpen(true);
+            setIsCartOpen(false); // Close cart sidebar
             return;
         }
 
@@ -182,7 +184,9 @@ export function CartProvider({ children }) {
             checkout,
             cartCount,
             isCartOpen,
-            setIsCartOpen
+            setIsCartOpen,
+            isAuthPromptOpen,
+            setIsAuthPromptOpen
         }}>
             {children}
         </CartContext.Provider>

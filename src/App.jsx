@@ -5,31 +5,38 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProductManagement from './pages/ProductManagement';
 import ClientHome from './pages/ClientHome';
 import UserProfile from './pages/UserProfile';
+import AuthPromptModal from './components/AuthPromptModal';
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   return (
-    <Routes>
-      <Route path="/login" element={!user ? <AuthPage /> : <Navigate to="/" />} />
+    user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />
+    <>
+      <Routes>
+        {/* Rutas de autenticación */}
+        <Route path="/login" element={<AuthPage />} />
 
-      <Route path="/admin" element={
-        user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />
-      } />
+        {/* Rutas de administrador */}
+        <Route path="/admin" element={
+          user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />
+        } />
 
-      <Route path="/admin/products" element={
-        user?.role === 'admin' ? <ProductManagement /> : <Navigate to="/" />
-      } />
+        <Route path="/admin/products" element={
+          user?.role === 'admin' ? <ProductManagement /> : <Navigate to="/" />
+        } />
 
-      {/* Rutas públicas */}
-      <Route path="/shop" element={<ClientHome />} />
-      <Route path="/" element={
-        user?.role === 'admin' ? <Navigate to="/admin" /> : <ClientHome />
-      } />
+        {/* Rutas públicas */}
+        <Route path="/shop" element={<ClientHome />} />
+        <Route path="/" element={
+          user?.role === 'admin' ? <Navigate to="/admin" /> : <ClientHome />
+        } />
 
-      {/* Rutas protegidas */}
-      <Route path="/profile" element={user ? <UserProfile /> : <Navigate to="/login" />} />
-    </Routes>
+        {/* Rutas protegidas */}
+        <Route path="/profile" element={user ? <UserProfile /> : <Navigate to="/login" />} />
+      </Routes>
+      <AuthPromptModal />
+    </>
   );
 }
 
