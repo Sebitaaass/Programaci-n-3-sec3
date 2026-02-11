@@ -13,7 +13,12 @@ export const AuthProvider = ({ children }) => {
         // Check local storage for existing session
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error("Error parsing stored user:", e);
+                localStorage.removeItem('user');
+            }
         }
         setLoading(false);
     }, []);

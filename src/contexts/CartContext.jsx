@@ -14,11 +14,14 @@ export function CartProvider({ children }) {
         if (user) {
             fetchCart();
         } else {
-            const localCart = localStorage.getItem('guest_cart');
-            if (localCart) {
-                setCartItems(JSON.parse(localCart));
-            } else {
+            try {
+                const localCart = localStorage.getItem('guest_cart');
+                const parsedCart = localCart ? JSON.parse(localCart) : [];
+                setCartItems(Array.isArray(parsedCart) ? parsedCart : []);
+            } catch (e) {
+                console.error("Error parsing guest cart:", e);
                 setCartItems([]);
+                localStorage.removeItem('guest_cart');
             }
         }
     }, [user]);
@@ -162,7 +165,7 @@ export function CartProvider({ children }) {
         }
     };
 
-    const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const cartCount = Array.isArray(cartItems) ? cartItems.reduce((sum, item) => sum + item.quantity, 0) : 0;
 
     return (
         <CartContext.Provider value={{
