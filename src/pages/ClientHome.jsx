@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import API_BASE_URL from '../config/api';
 import Header from '../components/Header';
 import HeroBanner from '../components/HeroBanner';
 import CategoryFilter from '../components/CategoryFilter';
@@ -18,7 +19,7 @@ export default function ClientHome() {
     }, [searchParams]);
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/products')
+        fetch(`${API_BASE_URL}/api/products`)
             .then(res => res.json())
             .then(data => setProducts(data))
             .catch(err => console.error("Error fetching products:", err));

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE_URL from '../config/api';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -12,7 +13,7 @@ export default function AdminDashboard() {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch('http://localhost:3000/api/users');
+            const res = await fetch(`${API_BASE_URL}/api/users`);
             const data = await res.json();
             setUserList(data);
         } catch (error) {
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
         if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) return;
 
         try {
-            const response = await fetch(`http://localhost:3000/api/users/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/users/${id}`, {
                 method: 'DELETE',
             });
 
@@ -47,7 +48,7 @@ export default function AdminDashboard() {
         setMessage({ text: '', type: '' });
 
         try {
-            const response = await fetch('http://localhost:3000/api/admin/create', {
+            const response = await fetch(`${API_BASE_URL}/api/admin/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...newAdmin, creatorRole: user.role })

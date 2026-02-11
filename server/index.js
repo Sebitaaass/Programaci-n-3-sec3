@@ -26,10 +26,24 @@ const upload = multer({ storage: storage });
 
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const SECRET_KEY = 'super_secret_key_antime'; // En prod iría en .env
 
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        const allowed = [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'https://sec3.onrender.com'
+        ];
+        if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://10.')) {
+            return callback(null, true);
+        }
+        return callback(null, true); // Permisivo en desarrollo
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.resolve(__dirname, 'public/uploads')));
 
@@ -373,6 +387,13 @@ app.post('/api/checkout', (req, res) => {
             });
         });
     });
+});
+
+// Servir frontend compilado en producción
+const frontendPath = path.resolve(__dirname, '..', 'dist');
+app.use(express.static(frontendPath));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.listen(PORT, () => {

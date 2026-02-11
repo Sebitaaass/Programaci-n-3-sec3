@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE_URL from '../config/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProductManagement() {
@@ -39,7 +40,7 @@ export default function ProductManagement() {
 
     const fetchProducts = async () => {
         try {
-            const res = await fetch('http://localhost:3000/api/products');
+            const res = await fetch(`${API_BASE_URL}/api/products`);
             const data = await res.json();
             setProducts(data);
         } catch (error) {
@@ -62,7 +63,7 @@ export default function ProductManagement() {
         formDataUpload.append('image', imageFile);
 
         try {
-            const res = await fetch('http://localhost:3000/api/upload', {
+            const res = await fetch(`${API_BASE_URL}/api/upload`, {
                 method: 'POST',
                 body: formDataUpload
             });
@@ -81,8 +82,8 @@ export default function ProductManagement() {
         setMessage({ text: '', type: '' });
 
         const url = editingId
-            ? `http://localhost:3000/api/products/${editingId}`
-            : 'http://localhost:3000/api/products';
+            ? `${API_BASE_URL}/api/products/${editingId}`
+            : `${API_BASE_URL}/api/products`;
 
         const method = editingId ? 'PUT' : 'POST';
 
@@ -93,7 +94,7 @@ export default function ProductManagement() {
             if (imageFile) {
                 setMessage({ text: 'Subiendo imagen...', type: 'info' });
                 const uploadedUrl = await uploadImage();
-                finalImageUrl = `http://localhost:3000${uploadedUrl}`;
+                finalImageUrl = `${API_BASE_URL}${uploadedUrl}`;
             }
 
             const response = await fetch(url, {
@@ -143,7 +144,7 @@ export default function ProductManagement() {
         if (!window.confirm('¿Estás seguro de eliminar este producto?')) return;
 
         try {
-            const response = await fetch(`http://localhost:3000/api/products/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
                 method: 'DELETE'
             });
 

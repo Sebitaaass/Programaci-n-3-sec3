@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE_URL from '../config/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { FiPackage, FiMapPin, FiShield, FiLogOut, FiUser } from 'react-icons/fi';
 import Header from '../components/Header';
@@ -14,12 +15,12 @@ export default function UserProfile() {
     useEffect(() => {
         if (user) {
             // Fetch Orders
-            fetch(`http://localhost:3000/api/orders/user/${user.id}`)
+            fetch(`${API_BASE_URL}/api/orders/user/${user.id}`)
                 .then(res => res.json())
                 .then(data => setOrders(data));
 
             // Fetch Addresses
-            fetch(`http://localhost:3000/api/addresses/user/${user.id}`)
+            fetch(`${API_BASE_URL}/api/addresses/user/${user.id}`)
                 .then(res => res.json())
                 .then(data => setAddresses(data));
         }
@@ -27,7 +28,7 @@ export default function UserProfile() {
 
     const handleLogoutAll = async () => {
         if (window.confirm('¿Estás seguro de que deseas cerrar todas las sesiones activas?')) {
-            const res = await fetch('http://localhost:3000/api/logout-all', { method: 'POST' });
+            const res = await fetch(`${API_BASE_URL}/api/logout-all`, { method: 'POST' });
             const data = await res.json();
             alert(data.message);
             logout(); // También deslogueamos la actual

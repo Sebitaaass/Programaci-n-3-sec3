@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import API_BASE_URL from '../config/api';
 
 const CartContext = createContext();
 
@@ -19,7 +20,7 @@ export function CartProvider({ children }) {
 
     const fetchCart = async () => {
         try {
-            const res = await fetch(`http://localhost:3000/api/cart/${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/cart/${user.id}`);
             const data = await res.json();
             setCartItems(data);
         } catch (error) {
@@ -34,7 +35,7 @@ export function CartProvider({ children }) {
         }
 
         try {
-            const res = await fetch('http://localhost:3000/api/cart/add', {
+            const res = await fetch(`${API_BASE_URL}/api/cart/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -57,7 +58,7 @@ export function CartProvider({ children }) {
     const updateQuantity = async (cartItemId, quantity) => {
         if (quantity < 1) return;
         try {
-            const res = await fetch('http://localhost:3000/api/cart/update', {
+            const res = await fetch(`${API_BASE_URL}/api/cart/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cartItemId, quantity })
@@ -70,7 +71,7 @@ export function CartProvider({ children }) {
 
     const removeFromCart = async (id) => {
         try {
-            const res = await fetch(`http://localhost:3000/api/cart/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/cart/${id}`, {
                 method: 'DELETE'
             });
             if (res.ok) fetchCart();
@@ -85,7 +86,7 @@ export function CartProvider({ children }) {
         const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
         try {
-            const res = await fetch('http://localhost:3000/api/checkout', {
+            const res = await fetch(`${API_BASE_URL}/api/checkout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
