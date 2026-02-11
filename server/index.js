@@ -61,7 +61,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 
 // Endpoint de Registro (Público - Solo Clientes)
 
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -71,30 +71,27 @@ app.post('/api/register', (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(password, salt);
 
-    const query = "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'client')";
+    const query = "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, 'client') RETURNING id";
 
-    db.run(query, [name, email, hash], function (err) {
-        if (err) {
-            if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(400).json({ error: 'El email ya está registrado' });
-            }
-            return res.status(500).json({ error: err.message });
+    try {
+        const result = await db.query(query, [name, email, hash]);
+        const newUser = { id: result.rows[0].id, name, email, role: 'client' };
+        res.json({ message: 'Registro exitoso', user: newUser });
+    } catch (err) {
+        if (err.message.includes('unique constraint') || err.code === '23505') {
+            return res.status(400).json({ error: 'El email ya está registrado' });
         }
-
-        // Auto-login tras registro
-        const user = { id: this.lastID, name, email, role: 'client' };
-        res.json({ message: 'Registro exitoso', user });
-    });
+        return res.status(500).json({ error: err.message });
+    }
 });
 
 // Endpoint de Login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
 
-    db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const user = await db.get("SELECT * FROM users WHERE email = $1", [email]);
 
-        // Cambio solicitado: Mensaje específico si el correo no existe
         if (!user) {
             return res.status(404).json({
                 error: 'No existe cuenta afiliada a Antime con este correo electrónico. Debe registrarse.'
@@ -103,10 +100,9 @@ app.post('/api/login', (req, res) => {
 
         const validPassword = bcrypt.compareSync(password, user.password_hash);
         if (!validPassword) {
-            return res.status(401).json({ error: 'Contraseña incorrecta' }); // Mantenemos este distinto o genérico según preferencia, pero el requerimiento era específico para "no existe"
+            return res.status(401).json({ error: 'Contraseña incorrecta' });
         }
 
-        // Retornamos info del usuario (sin el hash)
         const userInfo = {
             id: user.id,
             name: user.name,
@@ -115,16 +111,17 @@ app.post('/api/login', (req, res) => {
         };
 
         res.json({ message: 'Login exitoso', user: userInfo });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Endpoint Protegido: Crear Admin (Solo admisible si se solicitara autenticación real, 
 // por simplicidad ahora validamos que quien hace la petición sea admin en el frontend, 
 // o podríamos pedir un 'admin_secret' en el body)
-app.post('/api/admin/create', (req, res) => {
+app.post('/api/admin/create', async (req, res) => {
     const { name, email, password, creatorRole } = req.body;
 
-    // Validación básica de seguridad (en una app real usaríamos middleware de JWT)
     if (creatorRole !== 'admin') {
         return res.status(403).json({ error: 'No tienes permisos para realizar esta acción' });
     }
@@ -132,45 +129,59 @@ app.post('/api/admin/create', (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(password, salt);
 
-    const query = "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')";
+    const query = "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, 'admin')";
 
-    db.run(query, [name, email, hash], function (err) {
-        if (err) {
-            if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(400).json({ error: 'El email ya está registrado' });
-            }
-            return res.status(500).json({ error: err.message });
-        }
+    try {
+        await db.run(query, [name, email, hash]);
         res.json({ message: 'Administrador creado exitosamente' });
-    });
+    } catch (err) {
+        if (err.message.includes('unique constraint') || err.code === '23505') {
+            return res.status(400).json({ error: 'El email ya está registrado' });
+        }
+        return res.status(500).json({ error: err.message });
+    }
 });
 
-app.get('/api/users', (req, res) => {
-    db.all("SELECT id, name, email, role FROM users", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/users', async (req, res) => {
+    try {
+        const rows = await db.all("SELECT id, name, email, role FROM users");
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Endpoint Protegido: Eliminar usuario
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
     const { id } = req.params;
 
-    // Validación: Prevenir eliminar al admin principal
-    // Primero buscamos el usuario para ver si es el admin seed
-    db.get("SELECT email FROM users WHERE id = ?", [id], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const row = await db.get("SELECT email FROM users WHERE id = $1", [id]);
         if (!row) return res.status(404).json({ error: 'Usuario no encontrado' });
 
         if (row.email === 'admin@antime.com') {
             return res.status(403).json({ error: 'No se puede eliminar al Administrador Principal' });
         }
 
-        db.run("DELETE FROM users WHERE id = ?", [id], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: 'Usuario eliminado correctamente' });
-        });
-    });
+        await db.run("DELETE FROM users WHERE id = $1", [id]);
+        res.json({ message: 'Usuario eliminado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint: Actualizar descripción del usuario
+app.put('/api/users/:id/description', async (req, res) => {
+    const { id } = req.params;
+    const { description } = req.body;
+
+    try {
+        const result = await db.run("UPDATE users SET description = $1 WHERE id = $2", [description, id]);
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json({ message: 'Descripción actualizada correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // -----------------------------------------
@@ -178,62 +189,70 @@ app.delete('/api/users/:id', (req, res) => {
 // -----------------------------------------
 
 // GET: Listar todos los productos
-app.get('/api/products', (req, res) => {
-    db.all("SELECT * FROM products", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/products', async (req, res) => {
+    try {
+        const rows = await db.all("SELECT * FROM products");
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST: Crear un nuevo producto
-app.post('/api/products', (req, res) => {
+app.post('/api/products', async (req, res) => {
     const { name, description, price, category, image_url, sizes, stock } = req.body;
 
     if (!name || !price) {
         return res.status(400).json({ error: 'Nombre y precio son obligatorios' });
     }
 
-    const query = `INSERT INTO products (name, description, price, category, image_url, sizes, stock) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const query = `INSERT INTO products (name, description, price, category, image_url, sizes, stock) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`;
     const params = [name, description, price, category, image_url, sizes, stock || 0];
 
-    db.run(query, params, function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const result = await db.query(query, params);
+        const productId = result.rows[0].id;
         res.json({
             message: 'Producto creado exitosamente',
-            id: this.lastID,
-            product: { id: this.lastID, name, description, price, category, image_url, sizes, stock }
+            id: productId,
+            product: { id: productId, name, description, price, category, image_url, sizes, stock }
         });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // PUT: Actualizar un producto
-app.put('/api/products/:id', (req, res) => {
+app.put('/api/products/:id', async (req, res) => {
     const { id } = req.params;
     const { name, description, price, category, image_url, sizes, stock } = req.body;
 
-    // Construimos la query dinámicamente o simple update de todo
     const query = `
         UPDATE products 
-        SET name = ?, description = ?, price = ?, category = ?, image_url = ?, sizes = ?, stock = ?
-        WHERE id = ?
+        SET name = $1, description = $2, price = $3, category = $4, image_url = $5, sizes = $6, stock = $7
+        WHERE id = $8
     `;
     const params = [name, description, price, category, image_url, sizes, stock, id];
 
-    db.run(query, params, function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        if (this.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
+    try {
+        const result = await db.run(query, params);
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Producto no encontrado' });
         res.json({ message: 'Producto actualizado correctamente' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // DELETE: Eliminar un producto
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', async (req, res) => {
     const { id } = req.params;
-    db.run("DELETE FROM products WHERE id = ?", [id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        if (this.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
+    try {
+        const result = await db.run("DELETE FROM products WHERE id = $1", [id]);
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Producto no encontrado' });
         res.json({ message: 'Producto eliminado correctamente' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // -----------------------------------------
@@ -241,67 +260,68 @@ app.delete('/api/products/:id', (req, res) => {
 // -----------------------------------------
 
 // GET: Obtener items del carrito
-app.get('/api/cart/:userId', (req, res) => {
+app.get('/api/cart/:userId', async (req, res) => {
     const { userId } = req.params;
     const query = `
         SELECT c.*, p.name, p.price, p.image_url 
         FROM cart_items c 
         JOIN products p ON c.product_id = p.id 
-        WHERE c.user_id = ?
+        WHERE c.user_id = $1
     `;
-    db.all(query, [userId], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const rows = await db.all(query, [userId]);
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST: Agregar item al carrito
-app.post('/api/cart/add', (req, res) => {
+app.post('/api/cart/add', async (req, res) => {
     const { userId, productId, size, quantity } = req.body;
 
     if (!userId || !productId) {
         return res.status(400).json({ error: 'UserID y ProductID son obligatorios' });
     }
 
-    // Verificar si ya existe el mismo producto con la misma talla
-    db.get("SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ? AND size = ?",
-        [userId, productId, size], (err, row) => {
-            if (err) return res.status(500).json({ error: err.message });
+    try {
+        const row = await db.get("SELECT id, quantity FROM cart_items WHERE user_id = $1 AND product_id = $2 AND size = $3",
+            [userId, productId, size]);
 
-            if (row) {
-                // Update quantity
-                const newQuantity = row.quantity + (quantity || 1);
-                db.run("UPDATE cart_items SET quantity = ? WHERE id = ?", [newQuantity, row.id], function (err) {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ message: 'Cantidad actualizada', id: row.id });
-                });
-            } else {
-                // Insert new item
-                const query = "INSERT INTO cart_items (user_id, product_id, size, quantity) VALUES (?, ?, ?, ?)";
-                db.run(query, [userId, productId, size, quantity || 1], function (err) {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ message: 'Producto agregado al carrito', id: this.lastID });
-                });
-            }
-        });
+        if (row) {
+            const newQuantity = row.quantity + (quantity || 1);
+            await db.run("UPDATE cart_items SET quantity = $1 WHERE id = $2", [newQuantity, row.id]);
+            res.json({ message: 'Cantidad actualizada', id: row.id });
+        } else {
+            const query = "INSERT INTO cart_items (user_id, product_id, size, quantity) VALUES ($1, $2, $3, $4) RETURNING id";
+            const result = await db.query(query, [userId, productId, size, quantity || 1]);
+            res.json({ message: 'Producto agregado al carrito', id: result.rows[0].id });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST: Actualizar cantidad manualmente
-app.post('/api/cart/update', (req, res) => {
+app.post('/api/cart/update', async (req, res) => {
     const { cartItemId, quantity } = req.body;
-    db.run("UPDATE cart_items SET quantity = ? WHERE id = ?", [quantity, cartItemId], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await db.run("UPDATE cart_items SET quantity = $1 WHERE id = $2", [quantity, cartItemId]);
         res.json({ message: 'Cantidad actualizada' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // DELETE: Eliminar item del carrito
-app.delete('/api/cart/:id', (req, res) => {
+app.delete('/api/cart/:id', async (req, res) => {
     const { id } = req.params;
-    db.run("DELETE FROM cart_items WHERE id = ?", [id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await db.run("DELETE FROM cart_items WHERE id = $1", [id]);
         res.json({ message: 'Item eliminado del carrito' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // -----------------------------------------
@@ -312,41 +332,48 @@ app.delete('/api/cart/:id', (req, res) => {
 // -----------------------------------------
 
 // GET: Historial de pedidos de un usuario
-app.get('/api/orders/user/:userId', (req, res) => {
+app.get('/api/orders/user/:userId', async (req, res) => {
     const { userId } = req.params;
+    // Note: GROUP_CONCAT is SQLite specific. PostgreSQL uses string_agg.
     const query = `
         SELECT o.*, 
-               (SELECT GROUP_CONCAT(p.name || ' (x' || oi.quantity || ')', ', ') 
+               (SELECT string_agg(p.name || ' (x' || oi.quantity || ')', ', ') 
                 FROM order_items oi 
                 JOIN products p ON oi.product_id = p.id 
                 WHERE oi.order_id = o.id) as items_summary
         FROM orders o 
-        WHERE o.user_id = ?
+        WHERE o.user_id = $1
         ORDER BY o.created_at DESC
     `;
-    db.all(query, [userId], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const rows = await db.all(query, [userId]);
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // GET: Direcciones de un usuario
-app.get('/api/addresses/user/:userId', (req, res) => {
+app.get('/api/addresses/user/:userId', async (req, res) => {
     const { userId } = req.params;
-    db.all("SELECT * FROM addresses WHERE user_id = ?", [userId], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const rows = await db.all("SELECT * FROM addresses WHERE user_id = $1", [userId]);
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST: Agregar dirección
-app.post('/api/addresses', (req, res) => {
+app.post('/api/addresses', async (req, res) => {
     const { userId, street, city, state, zipCode, country, isDefault } = req.body;
-    const query = "INSERT INTO addresses (user_id, street, city, state, zip_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    db.run(query, [userId, street, city, state, zipCode, country || 'España', isDefault ? 1 : 0], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: 'Dirección guardada', id: this.lastID });
-    });
+    const query = "INSERT INTO addresses (user_id, street, city, state, zip_code, country, is_default) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id";
+    try {
+        const result = await db.query(query, [userId, street, city, state, zipCode, country || 'España', isDefault ? 1 : 0]);
+        res.json({ message: 'Dirección guardada', id: result.rows[0].id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST: Cerrar todas las sesiones (Simulado)
@@ -355,38 +382,34 @@ app.post('/api/logout-all', (req, res) => {
     res.json({ message: 'Todas las sesiones han sido cerradas correctamente (simulación)' });
 });
 
-app.post('/api/checkout', (req, res) => {
+app.post('/api/checkout', async (req, res) => {
     const { userId, items, total } = req.body;
 
     if (!userId || !items || items.length === 0) {
         return res.status(400).json({ error: 'Datos de pedido incompletos' });
     }
 
-    db.serialize(() => {
+    try {
         // 1. Crear la orden
-        const orderQuery = "INSERT INTO orders (user_id, total) VALUES (?, ?)";
-        db.run(orderQuery, [userId, total], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
+        const orderQuery = "INSERT INTO orders (user_id, total) VALUES ($1, $2) RETURNING id";
+        const orderResult = await db.query(orderQuery, [userId, total]);
+        const orderId = orderResult.rows[0].id;
 
-            const orderId = this.lastID;
+        // 2. Crear los order_items
+        const itemQuery = "INSERT INTO order_items (order_id, product_id, size, quantity, price) VALUES ($1, $2, $3, $4, $5)";
 
-            // 2. Crear los order_items
-            const itemQuery = "INSERT INTO order_items (order_id, product_id, size, quantity, price) VALUES (?, ?, ?, ?, ?)";
-            const stmt = db.prepare(itemQuery);
+        for (const item of items) {
+            await db.run(itemQuery, [orderId, item.product_id, item.size, item.quantity, item.price]);
+        }
 
-            items.forEach(item => {
-                stmt.run([orderId, item.product_id, item.size, item.quantity, item.price]);
-            });
+        // 3. Limpiar el carrito del usuario
+        await db.run("DELETE FROM cart_items WHERE user_id = $1", [userId]);
 
-            stmt.finalize();
-
-            // 3. Limpiar el carrito del usuario
-            db.run("DELETE FROM cart_items WHERE user_id = ?", [userId], (err) => {
-                if (err) console.error("Error clearing cart after checkout:", err);
-                res.json({ message: 'Compra realizada con éxito', orderId });
-            });
-        });
-    });
+        res.json({ message: 'Compra realizada con éxito', orderId });
+    } catch (err) {
+        console.error("Error during checkout:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Servir frontend compilado en producción

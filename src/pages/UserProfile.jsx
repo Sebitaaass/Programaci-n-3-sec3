@@ -11,6 +11,28 @@ export default function UserProfile() {
     const [orders, setOrders] = useState([]);
     const [addresses, setAddresses] = useState([]);
     const [activeTab, setActiveTab] = useState('profile');
+    const [isEditing, setIsEditing] = useState(false);
+    const [tempDescription, setTempDescription] = useState(user.description || '');
+
+    const handleSaveDescription = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/${user.id}/description`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: tempDescription })
+            });
+
+            if (res.ok) {
+                user.description = tempDescription; // Actualización local simple
+                setIsEditing(false);
+            } else {
+                alert('Error al guardar la descripción');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error de conexión');
+        }
+    };
 
     useEffect(() => {
         if (user) {
@@ -71,16 +93,54 @@ export default function UserProfile() {
                     <section className="profile-content card">
                         {activeTab === 'profile' && (
                             <div className="persona-section">
-                                <h3>Descripción del Cliente</h3>
-                                <div className="persona-card">
-                                    <p><strong>Edad:</strong> 25-30 años</p>
-                                    <p><strong>Estilo:</strong> Urbano - High Fashion. Prefiere prendas exclusivas y minimalistas que resalten su personalidad sin esfuerzo.</p>
-                                    <p><strong>Comportamiento:</strong> Usuario digital nativo. Valor de compra promedio de 150€. Suele comprar durante lanzamientos de nuevas colecciones.</p>
-                                    <p><strong>Necesidades:</strong> Rapidez en el envío, seguridad en el pago y facilidad para gestionar sus direcciones guardadas.</p>
-                                    <p style={{ marginTop: '1rem', fontStyle: 'italic' }}>
-                                        "{user.name} es un cliente fiel a Antime que busca calidad y transparecia en cada compra. Utiliza su cuenta para mantener un registro impecable de sus piezas de colección."
-                                    </p>
+                                <div className="section-header-flex">
+                                    <h3>Descripción del Cliente</h3>
+                                    {!user.description && !isEditing && (
+                                        <button className="btn-add-desc" onClick={() => setIsEditing(true)}>
+                                            Agregar +
+                                        </button>
+                                    )}
                                 </div>
+
+                                {isEditing ? (
+                                    <div className="edit-description-area">
+                                        <textarea
+                                            value={tempDescription}
+                                            onChange={(e) => setTempDescription(e.target.value)}
+                                            placeholder="Escribe aquí la descripción del perfil del cliente..."
+                                            rows={5}
+                                            className="desc-textarea"
+                                        />
+                                        <div className="edit-actions">
+                                            <button className="btn btn-primary" onClick={handleSaveDescription}>
+                                                Guardar
+                                            </button>
+                                            <button className="btn btn-outline" onClick={() => setIsEditing(false)}>
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="persona-card">
+                                        {user.description ? (
+                                            <>
+                                                <p style={{ whiteSpace: 'pre-wrap' }}>{user.description}</p>
+                                                <button
+                                                    className="btn-link"
+                                                    style={{ marginTop: '1rem', fontSize: '0.8rem' }}
+                                                    onClick={() => {
+                                                        setTempDescription(user.description);
+                                                        setIsEditing(true);
+                                                    }}
+                                                >
+                                                    Editar descripción
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <p className="empty-state-text">No hay una descripción configurada aún. Haz clic en "Agregar +" para definir el perfil del cliente.</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -239,6 +299,53 @@ export default function UserProfile() {
                     border: 1px solid var(--border);
                     border-radius: 8px;
                     margin-bottom: 1rem;
+                }
+                .section-header-flex {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1rem;
+                }
+                .btn-add-desc {
+                    padding: 0.5rem 1rem;
+                    background: var(--accent);
+                    color: white;
+                    border-radius: 20px;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                .btn-add-desc:hover {
+                    transform: scale(1.05);
+                    box-shadow: var(--shadow-sm);
+                }
+                .desc-textarea {
+                    width: 100%;
+                    padding: 1rem;
+                    border-radius: 12px;
+                    border: 1px solid var(--border);
+                    background: white;
+                    font-family: inherit;
+                    font-size: 1rem;
+                    margin-bottom: 1rem;
+                    resize: vertical;
+                }
+                .edit-actions {
+                    display: flex;
+                    gap: 1rem;
+                }
+                .empty-state-text {
+                    color: var(--text-secondary);
+                    font-style: italic;
+                    text-align: center;
+                    padding: 2rem 0;
+                }
+                .btn-link {
+                    background: transparent;
+                    color: var(--accent);
+                    text-decoration: underline;
+                    padding: 0;
+                    cursor: pointer;
                 }
             `}</style>
         </div>
