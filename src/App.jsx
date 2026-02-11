@@ -11,7 +11,6 @@ function App() {
   const { user, loading } = useAuth();
 
   return (
-    user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />
     <>
       <Routes>
         {/* Rutas de autenticación */}
